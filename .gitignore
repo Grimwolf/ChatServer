@@ -3,9 +3,11 @@
 #################
 
 *.pydevproject
+.lein-repl-history
 .project
 .metadata
 bin/
+target/
 tmp/
 *.tmp
 *.bak
