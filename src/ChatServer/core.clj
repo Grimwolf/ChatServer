@@ -6,7 +6,7 @@
     (java.util Date)
     (java.text DateFormat)))
 
-;(apply require clojure.main/repl-requires)
+(apply require clojure.main/repl-requires)
 
 (def channels (ref {}))
 (def nicknames (ref {}))
@@ -38,7 +38,6 @@
   (println "/channels: shows a list of active channels on the server")
   (println "/join #channel: connects you to the specified channel. If such channel does not exist - creates one")
   (println "/who: shows a list of users in the current channel")
-  (println "/leave: removes you from the active channel")
   (println "/exit: disconnects you from the server")
   "")
 
@@ -69,9 +68,18 @@
   "")
 
 ; User related functions
-(defn join-channel [channel]
+(defn join-channel [channel channel-name]
+  (println (str "You have joined #" channel-name))
   (send channel agent-add-user-to-channel *nickname* *out*)
   (send channel agent-broadcast-to-channel (str "> " *nickname* " has joined the channel.")))
+
+(defn attempt-to-join-channel [current-channel-name new-channel-name]
+  (if (= new-channel-name "")
+    (println "Please specify a valid channel name")
+    (do
+      (leave-channel (get-channel! current-channel-name))
+      (join-channel (get-channel! new-channel-name) new-channel-name)))
+  new-channel-name)
 
 (defn leave-channel [channel]
   (send channel agent-remove-user-from-channel *nickname*)
@@ -100,13 +108,7 @@
       (condp = command
         "/help" (print-commands)
         "/channels" (list-channels)
-        "/join" (let [new-channel-name (apply str (rest split))]
-                  (if (= new-channel-name "")
-                    (println "Please specify a valid channel name")
-                    (do
-                      (leave-channel (get-channel! current-channel))
-                      (join-channel (get-channel! new-channel-name))))
-                  new-channel-name)
+        "/join" (attempt-to-join-channel current-channel (apply str (rest split)))
         "/who" (display-users current-channel)
         "/exit" nil
         (println (str "Unknown command '" command "', type '/help' for a list of commands"))
@@ -120,10 +122,9 @@
     (print-welcome-message)
     (binding [*nickname* (read-line)]
       (print-help-message)
-      (println "You have joined #Bulgaria")
-      (join-channel (get-channel! "Bulgaria"))
+      (join-channel (get-channel! "Bulgaria") "Bulgaria")
       ;(print (str *nickname* "@Bulgaria: "))
-      ;(flush)
+      (flush)
       (try
         (loop [input (read-line) current-channel "Bulgaria"]
           (let [result (parse-command input current-channel)]
